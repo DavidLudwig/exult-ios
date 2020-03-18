@@ -268,3 +268,6 @@ ios/data/jmsisfx.flx
 ios/data/sqsfxbg.flx
 ios/data/sqsfxsi.flx
 
+# Mercurial repositories
+.hg
+
