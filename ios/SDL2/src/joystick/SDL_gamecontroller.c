@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2019 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2020 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -42,7 +42,10 @@
 /* Many controllers turn the center button into an instantaneous button press */
 #define SDL_MINIMUM_GUIDE_BUTTON_DELAY_MS   250
 
-#define SDL_CONTROLLER_PLATFORM_FIELD "platform:"
+#define SDL_CONTROLLER_PLATFORM_FIELD   "platform:"
+#define SDL_CONTROLLER_HINT_FIELD       "hint:"
+#define SDL_CONTROLLER_SDKGE_FIELD      "sdk>=:"
+#define SDL_CONTROLLER_SDKLE_FIELD      "sdk<=:"
 
 /* a list of currently opened game controllers */
 static SDL_GameController *SDL_gamecontrollers = NULL;
@@ -436,6 +439,12 @@ static ControllerMapping_t *SDL_PrivateGetControllerMappingForGUID(SDL_JoystickG
             /* This is a HIDAPI device */
             return s_pHIDAPIMapping;
         }
+#if SDL_JOYSTICK_RAWINPUT
+        if (SDL_IsJoystickRAWINPUT(*guid)) {
+            /* This is a RAWINPUT device - same data as HIDAPI */
+            return s_pHIDAPIMapping;
+        }
+#endif
 #if SDL_JOYSTICK_XINPUT
         if (SDL_IsJoystickXInput(*guid)) {
             /* This is an XInput device */
@@ -642,8 +651,8 @@ SDL_PrivateGameControllerParseControllerConfigString(SDL_GameController *gamecon
     int i = 0;
     const char *pchPos = pchString;
 
-    SDL_zero(szGameButton);
-    SDL_zero(szJoystickButton);
+    SDL_zeroa(szGameButton);
+    SDL_zeroa(szJoystickButton);
 
     while (pchPos && *pchPos) {
         if (*pchPos == ':') {
@@ -655,8 +664,8 @@ SDL_PrivateGameControllerParseControllerConfigString(SDL_GameController *gamecon
             i = 0;
             bGameButton = SDL_TRUE;
             SDL_PrivateGameControllerParseElement(gamecontroller, szGameButton, szJoystickButton);
-            SDL_zero(szGameButton);
-            SDL_zero(szJoystickButton);
+            SDL_zeroa(szGameButton);
+            SDL_zeroa(szJoystickButton);
 
         } else if (bGameButton) {
             if (i >= sizeof(szGameButton)) {
@@ -691,7 +700,9 @@ static void SDL_PrivateLoadButtonMapping(SDL_GameController *gamecontroller, con
 
     gamecontroller->name = pchName;
     gamecontroller->num_bindings = 0;
-    SDL_memset(gamecontroller->last_match_axis, 0, gamecontroller->joystick->naxes * sizeof(*gamecontroller->last_match_axis));
+    if (gamecontroller->joystick->naxes) {
+        SDL_memset(gamecontroller->last_match_axis, 0, gamecontroller->joystick->naxes * sizeof(*gamecontroller->last_match_axis));
+    }
 
     SDL_PrivateGameControllerParseControllerConfigString(gamecontroller, pchMapping);
 
@@ -879,7 +890,7 @@ SDL_PrivateAddMappingForGUID(SDL_JoystickGUID jGUID, const char *mappingString, 
             for ( pPrevMapping = s_pSupportedControllers, pCurrMapping = pPrevMapping->next;
                   pCurrMapping; 
                   pPrevMapping = pCurrMapping, pCurrMapping = pCurrMapping->next ) {
-                continue;
+                /* continue; */
             }
             pPrevMapping->next = pControllerMapping;
         } else {
@@ -1134,7 +1145,7 @@ SDL_GameControllerAddMappingsFromRW(SDL_RWops * rw, int freerw)
                 }
             }
         }
-        
+
         line = line_end + 1;
     }
 
@@ -1159,6 +1170,68 @@ SDL_PrivateGameControllerAddMapping(const char *mappingString, SDL_ControllerMap
     if (!mappingString) {
         return SDL_InvalidParamError("mappingString");
     }
+
+    { /* Extract and verify the hint field */
+        const char *tmp;
+
+        tmp = SDL_strstr(mappingString, SDL_CONTROLLER_HINT_FIELD);
+        if (tmp != NULL) {
+            SDL_bool default_value, value, negate;
+            int len;
+            char hint[128];
+
+            tmp += SDL_strlen(SDL_CONTROLLER_HINT_FIELD);
+
+            if (*tmp == '!') {
+                negate = SDL_TRUE;
+                ++tmp;
+            } else {
+                negate = SDL_FALSE;
+            }
+
+            len = 0;
+            while (*tmp && *tmp != ',' && *tmp != ':' && len < (sizeof(hint) - 1)) {
+                hint[len++] = *tmp++;
+            }
+            hint[len] = '\0';
+
+            if (tmp[0] == ':' && tmp[1] == '=') {
+                tmp += 2;
+                default_value = SDL_atoi(tmp);
+            } else {
+                default_value = SDL_FALSE;
+            }
+
+            value = SDL_GetHintBoolean(hint, default_value);
+            if (negate) {
+                value = !value;
+            }
+            if (!value) {
+                return 0;
+            }
+        }
+    }
+
+#ifdef ANDROID
+    { /* Extract and verify the SDK version */
+        const char *tmp;
+
+        tmp = SDL_strstr(mappingString, SDL_CONTROLLER_SDKGE_FIELD);
+        if (tmp != NULL) {
+            tmp += SDL_strlen(SDL_CONTROLLER_SDKGE_FIELD);
+            if (!(SDL_GetAndroidSDKVersion() >= SDL_atoi(tmp))) {
+                return SDL_SetError("SDK version %d < minimum version %d", SDL_GetAndroidSDKVersion(), SDL_atoi(tmp));
+            }
+        }
+        tmp = SDL_strstr(mappingString, SDL_CONTROLLER_SDKLE_FIELD);
+        if (tmp != NULL) {
+            tmp += SDL_strlen(SDL_CONTROLLER_SDKLE_FIELD);
+            if (!(SDL_GetAndroidSDKVersion() <= SDL_atoi(tmp))) {
+                return SDL_SetError("SDK version %d > maximum version %d", SDL_GetAndroidSDKVersion(), SDL_atoi(tmp));
+            }
+        }
+    }
+#endif
 
     pchGUID = SDL_PrivateGetControllerGUIDFromMappingString(mappingString);
     if (!pchGUID) {
@@ -1411,6 +1484,16 @@ SDL_GameControllerNameForIndex(int device_index)
 
 
 /**
+ *  Get the type of a game controller.
+ */
+SDL_GameControllerType
+SDL_GameControllerTypeForIndex(int joystick_index)
+{
+    return SDL_GetJoystickGameControllerTypeFromGUID(SDL_JoystickGetDeviceGUID(joystick_index), SDL_JoystickNameForIndex(joystick_index));
+}
+
+
+/**
  *  Get the mapping of a game controller.
  *  This can be called before any controllers are opened.
  *  If no mapping can be found, this function returns NULL.
@@ -1482,8 +1565,8 @@ SDL_bool SDL_ShouldIgnoreGameController(const char *name, SDL_JoystickGUID guid)
     Uint32 vidpid;
 
 #if defined(__LINUX__)
-    if (name && SDL_strstr(name, "Wireless Controller Motion Sensors")) {
-        /* Don't treat the PS4 motion controls as a separate game controller */
+    if (name && SDL_strstr(name, "Controller Motion Sensors")) {
+        /* Don't treat the PS3 and PS4 motion controls as a separate game controller */
         return SDL_TRUE;
     }
 #endif
@@ -1741,10 +1824,25 @@ SDL_GameControllerName(SDL_GameController * gamecontroller)
     }
 }
 
+SDL_GameControllerType
+SDL_GameControllerGetType(SDL_GameController *gamecontroller)
+{
+    return SDL_GetJoystickGameControllerTypeFromGUID(SDL_JoystickGetGUID(SDL_GameControllerGetJoystick(gamecontroller)), SDL_JoystickName(SDL_GameControllerGetJoystick(gamecontroller)));
+}
+
 int
 SDL_GameControllerGetPlayerIndex(SDL_GameController *gamecontroller)
 {
     return SDL_JoystickGetPlayerIndex(SDL_GameControllerGetJoystick(gamecontroller));
+}
+
+/**
+ *  Set the player index of an opened game controller
+ */
+void
+SDL_GameControllerSetPlayerIndex(SDL_GameController *gamecontroller, int player_index)
+{
+    SDL_JoystickSetPlayerIndex(SDL_GameControllerGetJoystick(gamecontroller), player_index);
 }
 
 Uint16
@@ -1791,7 +1889,7 @@ SDL_Joystick *SDL_GameControllerGetJoystick(SDL_GameController * gamecontroller)
 
 
 /*
- * Find the SDL_GameController that owns this instance id
+ * Return the SDL_GameController associated with an instance id.
  */
 SDL_GameController *
 SDL_GameControllerFromInstanceID(SDL_JoystickID joyid)
@@ -1808,6 +1906,19 @@ SDL_GameControllerFromInstanceID(SDL_JoystickID joyid)
         gamecontroller = gamecontroller->next;
     }
     SDL_UnlockJoysticks();
+    return NULL;
+}
+
+
+/**
+ * Return the SDL_GameController associated with a player index.
+ */
+SDL_GameController *SDL_GameControllerFromPlayerIndex(int player_index)
+{
+    SDL_Joystick *joystick = SDL_JoystickFromPlayerIndex(player_index);
+    if (joystick) {
+        return SDL_GameControllerFromInstanceID(joystick->instance_id);
+    }
     return NULL;
 }
 

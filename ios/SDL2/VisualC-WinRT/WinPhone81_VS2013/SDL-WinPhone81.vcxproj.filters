@@ -369,6 +369,9 @@
     <ClInclude Include="..\..\src\video\winrt\SDL_winrtvideo_cpp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\joystick\virtual\SDL_virtualjoystick_c.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\joystick\windows\SDL_xinputjoystick_c.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -593,6 +596,9 @@
     <ClCompile Include="..\..\src\stdlib\SDL_string.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\stdlib\SDL_strtokr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\thread\SDL_thread.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -687,6 +693,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\video\winrt\SDL_winrtvideo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\joystick\virtual\SDL_virtualjoystick.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\joystick\windows\SDL_xinputjoystick.c">
