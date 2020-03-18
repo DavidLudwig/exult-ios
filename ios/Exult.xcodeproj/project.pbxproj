@@ -11,6 +11,7 @@
 		1DF5F4E00D08C38300B7A737 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1DF5F4DF0D08C38300B7A737 /* UIKit.framework */; };
 		28FD15000DC6FC520079059D /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28FD14FF0DC6FC520079059D /* OpenGLES.framework */; };
 		28FD15080DC6FC5B0079059D /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28FD15070DC6FC5B0079059D /* QuartzCore.framework */; };
+		755CFCA72422A71C00108D32 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 755CFC9B2422A71C00108D32 /* CoreBluetooth.framework */; };
 		8A1C58211FE7D91B00738E40 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A1C581B1FE7D91B00738E40 /* libz.tbd */; };
 		8A2C52511DE6E1810016E16A /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8A7F1F8E1DE5BDD40066F6FC /* CoreFoundation.framework */; };
 		8A2C52591DE6E8E50016E16A /* crc.cc in Sources */ = {isa = PBXBuildFile; fileRef = E700DD671A6E3161006C8BE4 /* crc.cc */; };
@@ -50,9 +51,9 @@
 		8A8728D91DD8AEFF005AC3FC /* TVF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A8728C41DD8AEFF005AC3FC /* TVF.cpp */; };
 		8A8728DA1DD8AEFF005AC3FC /* TVP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A8728C61DD8AEFF005AC3FC /* TVP.cpp */; };
 		8A8728EA1DD8BAA3005AC3FC /* sha1.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8A8728E81DD8BAA3005AC3FC /* sha1.cpp */; };
+		8A93BD6A1F8901E3001850AA /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8A93BC931F869000001850AA /* Media.xcassets */; };
 		8AB479F822AD1A5500BB3562 /* iOS Launch Screen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 8AB479E422AD1A5500BB3562 /* iOS Launch Screen.storyboard */; };
 		8AB47A1922AD4D5D00BB3562 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 8AB47A1822AD4D5D00BB3562 /* Icon.png */; };
-		8A93BD6A1F8901E3001850AA /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8A93BC931F869000001850AA /* Media.xcassets */; };
 		8AB53D8C1C9CA0A90084C69D /* ShortcutBar_gump.cc in Sources */ = {isa = PBXBuildFile; fileRef = 8AB53D8A1C9CA0A90084C69D /* ShortcutBar_gump.cc */; };
 		8AC797C71C8D0E4F001AF014 /* unzip.cc in Sources */ = {isa = PBXBuildFile; fileRef = 8AC797C51C8D0E4F001AF014 /* unzip.cc */; };
 		8AC797C81C8D0E4F001AF014 /* zip.cc in Sources */ = {isa = PBXBuildFile; fileRef = 8AC797C61C8D0E4F001AF014 /* zip.cc */; };
@@ -378,6 +379,7 @@
 		1DF5F4DF0D08C38300B7A737 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		28FD14FF0DC6FC520079059D /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
 		28FD15070DC6FC5B0079059D /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		755CFC9B2422A71C00108D32 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 		8A0C19E11D6D9F1800B9105A /* sibetaintrinsics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sibetaintrinsics.h; sourceTree = "<group>"; };
 		8A1C581B1FE7D91B00738E40 /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
 		8A6013662057CF0C00FCA555 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
@@ -973,6 +975,7 @@
 				1D60589F0D05DD5A006BFB54 /* Foundation.framework in Frameworks */,
 				8A8340C71F8977FC000696C7 /* CoreMotion.framework in Frameworks */,
 				1DF5F4E00D08C38300B7A737 /* UIKit.framework in Frameworks */,
+				755CFCA72422A71C00108D32 /* CoreBluetooth.framework in Frameworks */,
 				8A8340C91F897806000696C7 /* GameController.framework in Frameworks */,
 				28FD15000DC6FC520079059D /* OpenGLES.framework in Frameworks */,
 				28FD15080DC6FC5B0079059D /* QuartzCore.framework in Frameworks */,
@@ -1052,6 +1055,7 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				755CFC9B2422A71C00108D32 /* CoreBluetooth.framework */,
 				8A6013662057CF0C00FCA555 /* Metal.framework */,
 				8A1C581B1FE7D91B00738E40 /* libz.tbd */,
 				8A7F1F8E1DE5BDD40066F6FC /* CoreFoundation.framework */,
