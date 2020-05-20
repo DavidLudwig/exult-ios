@@ -28,6 +28,7 @@
 
 #include <cstdlib>
 #include <cctype>
+#include <cmath>
 
 #include "sdl-compat.h"
 #include <SDL.h>
