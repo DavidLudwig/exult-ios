@@ -33,10 +33,10 @@ const float vjoy_radius = 80.f;  // max-radius of vjoy
 
 typedef enum
 {
-    GamePadButtonStyleRoundedRectangle,
-    GamePadButtonStyleCircle,
+	GamePadButtonStyleRoundedRectangle,
+	GamePadButtonStyleCircle,
 } GamePadButtonStyle;
-    
+	
 @class GamePadButton;
 
 @protocol GamePadButtonDelegate
