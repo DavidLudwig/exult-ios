@@ -25,7 +25,6 @@
 
 #include "SDL_stdinc.h"
 #include "SDL_assert.h"
-#include "SDL_log.h"
 
 #include "../../core/unix/SDL_poll.h"
 #include "../../events/SDL_sysevents.h"
@@ -43,7 +42,15 @@
 #include "xdg-shell-client-protocol.h"
 #include "xdg-shell-unstable-v6-client-protocol.h"
 
+#ifdef SDL_INPUT_LINUXEV
 #include <linux/input.h>
+#else
+#define BTN_LEFT    (0x110)
+#define BTN_RIGHT   (0x111)
+#define BTN_MIDDLE  (0x112)
+#define BTN_SIDE    (0x113)
+#define BTN_EXTRA   (0x114)
+#endif
 #include <sys/select.h>
 #include <sys/mman.h>
 #include <poll.h>
@@ -58,6 +65,7 @@ struct SDL_WaylandInput {
     struct wl_keyboard *keyboard;
     SDL_WaylandDataDevice *data_device;
     struct zwp_relative_pointer_v1 *relative_pointer;
+    struct zwp_confined_pointer_v1 *confined_pointer;
     SDL_WindowData *pointer_focus;
     SDL_WindowData *keyboard_focus;
 
@@ -437,7 +445,7 @@ pointer_handle_axis(void *data, struct wl_pointer *pointer,
 {
     struct SDL_WaylandInput *input = data;
 
-    if(wl_seat_interface.version >= 5)
+    if(wl_seat_get_version(input->seat) >= 5)
         pointer_handle_axis_common(input, SDL_FALSE, axis, value);
     else
         pointer_handle_axis_common_v1(input, time, axis, value);
@@ -998,7 +1006,7 @@ static const struct wl_data_device_listener data_device_listener = {
 };
 
 void
-Wayland_display_add_input(SDL_VideoData *d, uint32_t id)
+Wayland_display_add_input(SDL_VideoData *d, uint32_t id, uint32_t version)
 {
     struct SDL_WaylandInput *input;
     SDL_WaylandDataDevice *data_device = NULL;
@@ -1008,10 +1016,7 @@ Wayland_display_add_input(SDL_VideoData *d, uint32_t id)
         return;
 
     input->display = d;
-    if (wl_seat_interface.version >= 5)
-        input->seat = wl_registry_bind(d->registry, id, &wl_seat_interface, 5);
-    else
-        input->seat = wl_registry_bind(d->registry, id, &wl_seat_interface, 1);
+    input->seat = wl_registry_bind(d->registry, id, &wl_seat_interface, SDL_min(5, version));
     input->sx_w = wl_fixed_from_int(0);
     input->sy_w = wl_fixed_from_int(0);
     d->input = input;
@@ -1255,6 +1260,64 @@ int Wayland_input_unlock_pointer(struct SDL_WaylandInput *input)
     input->relative_pointer = NULL;
 
     d->relative_mouse_mode = 0;
+
+    return 0;
+}
+
+static void
+confined_pointer_confined(void *data,
+                          struct zwp_confined_pointer_v1 *confined_pointer)
+{
+}
+
+static void
+confined_pointer_unconfined(void *data,
+                            struct zwp_confined_pointer_v1 *confined_pointer)
+{
+}
+
+static const struct zwp_confined_pointer_v1_listener confined_pointer_listener = {
+    confined_pointer_confined,
+    confined_pointer_unconfined,
+};
+
+int Wayland_input_confine_pointer(SDL_Window *window, struct SDL_WaylandInput *input)
+{
+    SDL_WindowData *w = window->driverdata;
+    SDL_VideoData *d = input->display;
+    struct zwp_confined_pointer_v1 *confined_pointer;
+
+    if (!d->pointer_constraints)
+        return -1;
+
+    if (!input->pointer)
+        return -1;
+
+    /* A confine may already be active, in which case we should destroy it and
+     * create a new one. */
+    if (input->confined_pointer)
+        Wayland_input_unconfine_pointer(input);
+
+    confined_pointer =
+        zwp_pointer_constraints_v1_confine_pointer(d->pointer_constraints,
+                                                   w->surface,
+                                                   input->pointer,
+                                                   NULL,
+                                                   ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT);
+    zwp_confined_pointer_v1_add_listener(confined_pointer,
+                                         &confined_pointer_listener,
+                                         window);
+
+    input->confined_pointer = confined_pointer;
+    return 0;
+}
+
+int Wayland_input_unconfine_pointer(struct SDL_WaylandInput *input)
+{
+    if (input->confined_pointer) {
+        zwp_confined_pointer_v1_destroy(input->confined_pointer);
+        input->confined_pointer = NULL;
+    }
 
     return 0;
 }

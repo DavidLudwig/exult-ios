@@ -58,6 +58,9 @@ static SDL_JoystickDriver *SDL_joystick_drivers[] = {
 #ifdef SDL_JOYSTICK_HIDAPI /* Before WINDOWS_ driver, as WINDOWS wants to check if this driver is handling things */
     &SDL_HIDAPI_JoystickDriver,
 #endif
+#if defined(SDL_JOYSTICK_WGI)
+    &SDL_WGI_JoystickDriver,
+#endif
 #if defined(SDL_JOYSTICK_DINPUT) || defined(SDL_JOYSTICK_XINPUT)
     &SDL_WINDOWS_JoystickDriver,
 #endif
@@ -1074,14 +1077,46 @@ static void UpdateEventsForDeviceRemoval()
     SDL_small_free(events, isstack);
 }
 
+static void
+SDL_PrivateJoystickForceRecentering(SDL_Joystick *joystick)
+{
+    int i;
+
+    /* Tell the app that everything is centered/unpressed... */
+    for (i = 0; i < joystick->naxes; i++) {
+        if (joystick->axes[i].has_initial_value) {
+            SDL_PrivateJoystickAxis(joystick, i, joystick->axes[i].zero);
+        }
+    }
+
+    for (i = 0; i < joystick->nbuttons; i++) {
+        SDL_PrivateJoystickButton(joystick, i, 0);
+    }
+
+    for (i = 0; i < joystick->nhats; i++) {
+        SDL_PrivateJoystickHat(joystick, i, SDL_HAT_CENTERED);
+    }
+}
+
 void SDL_PrivateJoystickRemoved(SDL_JoystickID device_instance)
 {
-    SDL_Joystick *joystick;
+    SDL_Joystick *joystick = NULL;
     int player_index;
-
 #if !SDL_EVENTS_DISABLED
     SDL_Event event;
+#endif
 
+    /* Find this joystick... */
+    for (joystick = SDL_joysticks; joystick; joystick = joystick->next) {
+        if (joystick->instance_id == device_instance) {
+            SDL_PrivateJoystickForceRecentering(joystick);
+            joystick->attached = SDL_FALSE;
+            break;
+        }
+    }
+
+#if !SDL_EVENTS_DISABLED
+    SDL_zero(event);
     event.type = SDL_JOYDEVICEREMOVED;
 
     if (SDL_GetEventState(event.type) == SDL_ENABLE) {
@@ -1091,15 +1126,6 @@ void SDL_PrivateJoystickRemoved(SDL_JoystickID device_instance)
 
     UpdateEventsForDeviceRemoval();
 #endif /* !SDL_EVENTS_DISABLED */
-
-    /* Mark this joystick as no longer attached */
-    for (joystick = SDL_joysticks; joystick; joystick = joystick->next) {
-        if (joystick->instance_id == device_instance) {
-            joystick->attached = SDL_FALSE;
-            joystick->force_recentering = SDL_TRUE;
-            break;
-        }
-    }
 
     SDL_LockJoysticks();
     player_index = SDL_GetPlayerIndexForJoystickID(device_instance);
@@ -1347,25 +1373,6 @@ SDL_JoystickUpdate(void)
                 SDL_JoystickRumble(joystick, 0, 0, 0);
             }
             SDL_UnlockJoysticks();
-        }
-
-        if (joystick->force_recentering) {
-            /* Tell the app that everything is centered/unpressed... */
-            for (i = 0; i < joystick->naxes; i++) {
-                if (joystick->axes[i].has_initial_value) {
-                    SDL_PrivateJoystickAxis(joystick, i, joystick->axes[i].zero);
-                }
-            }
-
-            for (i = 0; i < joystick->nbuttons; i++) {
-                SDL_PrivateJoystickButton(joystick, i, 0);
-            }
-
-            for (i = 0; i < joystick->nhats; i++) {
-                SDL_PrivateJoystickHat(joystick, i, SDL_HAT_CENTERED);
-            }
-
-            joystick->force_recentering = SDL_FALSE;
         }
     }
 
@@ -1728,6 +1735,12 @@ SDL_IsJoystickXInput(SDL_JoystickGUID guid)
 }
 
 SDL_bool
+SDL_IsJoystickWGI(SDL_JoystickGUID guid)
+{
+    return (guid.data[14] == 'w') ? SDL_TRUE : SDL_FALSE;
+}
+
+SDL_bool
 SDL_IsJoystickHIDAPI(SDL_JoystickGUID guid)
 {
     return (guid.data[14] == 'h') ? SDL_TRUE : SDL_FALSE;
@@ -1834,6 +1847,10 @@ static SDL_JoystickType SDL_GetJoystickGUIDType(SDL_JoystickGUID guid)
         default:
             return SDL_JOYSTICK_TYPE_UNKNOWN;
         }
+    }
+
+    if (SDL_IsJoystickWGI(guid)) {
+        return (SDL_JoystickType)guid.data[15];
     }
 
     if (SDL_IsJoystickVirtual(guid)) {

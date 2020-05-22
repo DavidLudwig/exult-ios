@@ -26,7 +26,6 @@
 #include "SDL_atomic.h"
 #include "SDL_endian.h"
 #include "SDL_hints.h"
-#include "SDL_log.h"
 #include "SDL_thread.h"
 #include "SDL_timer.h"
 #include "SDL_joystick.h"
@@ -427,11 +426,13 @@ HIDAPI_GetDeviceDriver(SDL_HIDAPI_Device *device)
     }
 #endif
 
-    if (device->usage_page && device->usage_page != USAGE_PAGE_GENERIC_DESKTOP) {
-        return NULL;
-    }
-    if (device->usage && device->usage != USAGE_JOYSTICK && device->usage != USAGE_GAMEPAD && device->usage != USAGE_MULTIAXISCONTROLLER) {
-        return NULL;
+	if (device->vendor_id != USB_VENDOR_VALVE) {
+        if (device->usage_page && device->usage_page != USAGE_PAGE_GENERIC_DESKTOP) {
+            return NULL;
+        }
+        if (device->usage && device->usage != USAGE_JOYSTICK && device->usage != USAGE_GAMEPAD && device->usage != USAGE_MULTIAXISCONTROLLER) {
+            return NULL;
+        }
     }
 
     type = SDL_GetJoystickGameControllerType(device->name, device->vendor_id, device->product_id, device->interface_number, device->interface_class, device->interface_subclass, device->interface_protocol);
